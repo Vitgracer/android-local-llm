@@ -22,7 +22,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Status: Waiting..."
+            android:text="@string/status_waiting"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -34,7 +34,6 @@
             android:checked="false" />
     </LinearLayout>
 
-    <!-- Transcript field -->
     <ScrollView
         android:id="@+id/svTranscript"
         android:layout_width="0dp"
@@ -53,12 +52,11 @@
             android:id="@+id/tvTranscript"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Transcript..."
+            android:hint="@string/transcript_hint"
             android:textColor="#555555"
             android:textSize="14sp" />
     </ScrollView>
 
-    <!-- Response field -->
     <ScrollView
         android:id="@+id/svResponse"
         android:layout_width="0dp"
@@ -76,7 +74,7 @@
             android:id="@+id/tvResponse"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="AI response will appear here..."
+            android:hint="@string/response_hint"
             android:textColor="#01579B"
             android:textSize="17sp" />
     </ScrollView>
@@ -85,7 +83,7 @@
         android:id="@+id/btnGenerate"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:text="GENERATE ANSWER"
+        android:text="@string/btn_generate"
         android:backgroundTint="#1565C0"
         android:textColor="@android:color/white"
         android:textSize="16sp"

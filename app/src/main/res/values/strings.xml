@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">LocaLLM</string>
+    <string name="status_waiting">Status: Waiting...</string>
+    <string name="status_listening">Status: Listening (%1$s)...</string>
+    <string name="status_thinking">Thinking...</string>
+    <string name="transcript_hint">Transcript...</string>
+    <string name="response_hint">AI response will appear here...</string>
+    <string name="btn_generate">GENERATE ANSWER</string>
+    <string name="error_empty_transcript">Transcript is empty!</string>
+    <string name="error_server">Server error: %1$d</string>
+    <string name="error_start">Start error: %1$s</string>
+    <string name="error_stream">[Stream error]</string>
+    <string name="error_processing">Response processing error.</string>
 </resources>

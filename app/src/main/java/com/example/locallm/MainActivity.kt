@@ -23,7 +23,6 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -38,7 +37,6 @@ class MainActivity : AppCompatActivity() {
 
     private var speechRecognizer: SpeechRecognizer? = null
     
-    // Set timeouts to 60 seconds for slow local LLMs
     private val client = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -46,7 +44,6 @@ class MainActivity : AppCompatActivity() {
         .build()
         
     private val gson = Gson()
-    
     private val lmStudioUrl = AppConfig.LM_STUDIO_URL
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,11 +74,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnGenerate.setOnClickListener {
-            val contextText = tvTranscript.text.toString()
-            if (contextText.isNotBlank()) {
-                generateAIAnswer(contextText)
+            val fullText = tvTranscript.text.toString()
+            val contextText = if (fullText.length > 2000) {
+                fullText.substring(fullText.length - 2000)
             } else {
-                Toast.makeText(this, "Transcript is empty!", Toast.LENGTH_SHORT).show()
+                fullText
+            }
+            
+            if (contextText.isNotBlank()) {
+                generateAIAnswerStreaming(contextText)
+            } else {
+                Toast.makeText(this, getString(R.string.error_empty_transcript), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -102,22 +105,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initSpeechRecognizer() {
-        if (speechRecognizer != null) {
-            speechRecognizer?.destroy()
-        }
-        
+        speechRecognizer?.destroy()
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 val currentLang = if (swLanguage.isChecked) "EN" else "RU"
-                tvStatus.text = "Status: Listening ($currentLang)..."
+                tvStatus.text = getString(R.string.status_listening, currentLang)
             }
 
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 if (!matches.isNullOrEmpty()) {
                     val text = matches[0]
-                    tvTranscript.append("\n— $text")
+                    tvTranscript.append("\n[Speaker]: $text")
                     scrollToBottom(svTranscript)
                 }
                 startListening() 
@@ -140,7 +140,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun startListening() {
         val langTag = if (swLanguage.isChecked) "en-US" else "ru-RU"
-        
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, langTag)
@@ -156,7 +155,7 @@ class MainActivity : AppCompatActivity() {
         try {
             speechRecognizer?.startListening(intent)
         } catch (e: Exception) {
-            tvStatus.text = "Start error: ${e.message}"
+            tvStatus.text = getString(R.string.error_start, e.message)
         }
     }
 
@@ -165,22 +164,20 @@ class MainActivity : AppCompatActivity() {
         startListening()
     }
 
-    private fun generateAIAnswer(context: String) {
-        tvResponse.text = "Thinking..."
+    private fun generateAIAnswerStreaming(context: String) {
+        tvResponse.text = ""
         btnGenerate.isEnabled = false
+        tvResponse.hint = getString(R.string.status_thinking)
 
-        val systemPrompt = if (swLanguage.isChecked) {
-            AppConfig.SYSTEM_PROMPT_EN
-        } else {
-            AppConfig.SYSTEM_PROMPT_RU
-        }
+        val systemPrompt = if (swLanguage.isChecked) AppConfig.SYSTEM_PROMPT_EN else AppConfig.SYSTEM_PROMPT_RU
 
         val requestBody = mapOf(
             "messages" to listOf(
                 mapOf("role" to "system", "content" to systemPrompt),
-                mapOf("role" to "user", "content" to "Context:\n$context")
+                mapOf("role" to "user", "content" to "Context transcript:\n$context")
             ),
-            "temperature" to 0.7
+            "temperature" to 0.7,
+            "stream" to true
         )
 
         val body = gson.toJson(requestBody).toRequestBody("application/json".toMediaType())
@@ -195,20 +192,37 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val responseData = response.body?.string()
-                runOnUiThread {
-                    btnGenerate.isEnabled = true
-                    if (response.isSuccessful && responseData != null) {
-                        try {
-                            val apiResponse = gson.fromJson(responseData, LMStudioResponse::class.java)
-                            tvResponse.text = apiResponse.choices[0].message.content
-                            scrollToBottom(svResponse)
-                        } catch (e: Exception) {
-                            tvResponse.text = "Response parsing error."
-                        }
-                    } else {
-                        tvResponse.text = "Server error: ${response.code}"
+                if (!response.isSuccessful) {
+                    runOnUiThread {
+                        tvResponse.text = getString(R.string.error_server, response.code)
+                        btnGenerate.isEnabled = true
                     }
+                    return
+                }
+
+                val reader = response.body?.source()
+                try {
+                    while (reader != null && !reader.exhausted()) {
+                        val line = reader.readUtf8Line()
+                        if (line != null && line.startsWith("data: ")) {
+                            val json = line.substring(6)
+                            if (json == "[DONE]") break
+                            
+                            val chunk = gson.fromJson(json, StreamResponse::class.java)
+                            val content = chunk.choices[0].delta.content
+                            if (content != null) {
+                                runOnUiThread {
+                                    tvResponse.append(content)
+                                    scrollToBottom(svResponse)
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread { tvResponse.append("\n" + getString(R.string.error_stream)) }
+                } finally {
+                    runOnUiThread { btnGenerate.isEnabled = true }
+                    response.close()
                 }
             }
         })
@@ -224,6 +238,6 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-data class LMStudioResponse(val choices: List<Choice>)
-data class Choice(val message: Message)
-data class Message(val content: String)
+data class StreamResponse(val choices: List<StreamChoice>)
+data class StreamChoice(val delta: StreamDelta)
+data class StreamDelta(val content: String?)
