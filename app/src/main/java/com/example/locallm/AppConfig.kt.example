@@ -1,0 +1,13 @@
+package com.example.locallm
+
+/**
+ * Template for AppConfig.
+ * Copy this file to AppConfig.kt and fill in your details.
+ * AppConfig.kt is ignored by git to keep your local settings private.
+ */
+object AppConfig {
+    const val LM_STUDIO_URL = "http://YOUR_LOCAL_IP:1234/v1/chat/completions"
+
+    const val SYSTEM_PROMPT_EN = "Your English prompt here"
+    const val SYSTEM_PROMPT_RU = "Your Russian prompt here (even if the instructions are in Russian, the AI can still respond in Russian)"
+}
