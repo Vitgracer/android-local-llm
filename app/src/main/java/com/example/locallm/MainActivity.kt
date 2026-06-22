@@ -74,18 +74,23 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnGenerate.setOnClickListener {
-            val fullText = tvTranscript.text.toString()
-            val contextText = if (fullText.length > 2000) {
-                fullText.substring(fullText.length - 2000)
-            } else {
-                fullText
-            }
-            
-            if (contextText.isNotBlank()) {
-                generateAIAnswerStreaming(contextText)
-            } else {
+            val fullText = tvTranscript.text.toString().trim()
+            if (fullText.isEmpty()) {
                 Toast.makeText(this, getString(R.string.error_empty_transcript), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
+
+            // Split into blocks based on the speaker tag
+            val blocks = fullText.split("\n[Speaker]:").filter { it.isNotBlank() }
+            
+            // Limit context to ONLY 2 previous blocks to avoid confusing the AI with old questions
+            val contextBlocks = if (blocks.size > 1) {
+                blocks.dropLast(1).takeLast(2).joinToString("\n[Speaker]:", prefix = "[Speaker]:")
+            } else ""
+            
+            val latestQuestion = "[Speaker]:" + blocks.last()
+            
+            generateAIAnswerStreaming(contextBlocks, latestQuestion)
         }
     }
 
@@ -164,19 +169,27 @@ class MainActivity : AppCompatActivity() {
         startListening()
     }
 
-    private fun generateAIAnswerStreaming(context: String) {
+    private fun generateAIAnswerStreaming(context: String, latest: String) {
         tvResponse.text = ""
         btnGenerate.isEnabled = false
         tvResponse.hint = getString(R.string.status_thinking)
 
         val systemPrompt = if (swLanguage.isChecked) AppConfig.SYSTEM_PROMPT_EN else AppConfig.SYSTEM_PROMPT_RU
 
+        val userMessage = """
+            [BACKGROUND CONTEXT - DO NOT ANSWER THIS]:
+            $context
+            
+            [LATEST QUESTION - ANSWER THIS ONLY]:
+            $latest
+        """.trimIndent()
+
         val requestBody = mapOf(
             "messages" to listOf(
                 mapOf("role" to "system", "content" to systemPrompt),
-                mapOf("role" to "user", "content" to "Context transcript:\n$context")
+                mapOf("role" to "user", "content" to userMessage)
             ),
-            "temperature" to 0.7,
+            "temperature" to 0.1,
             "stream" to true
         )
 
