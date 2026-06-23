@@ -4,9 +4,12 @@
 ![Stars](https://img.shields.io/github/stars/Vitgracer/android-local-llm?color=F59F00&label=Stars&style=flat-square)
 ![Forks](https://img.shields.io/github/forks/Vitgracer/android-local-llm?color=E03131&label=Forks&style=flat-square)
 
-# LocaLLM 
+# LocaLLM 🤖🎙️
 
 LocaLLM is an Android application designed for real-time speech-to-text processing and intelligent response generation using local Large Language Models (LLMs). It serves as a helpful assistant during live conversations.
+
+## Demo
+![LocaLLM Demo](path/to/your/demo.gif)
 
 ## Features
 - **Voice Recognition**: Real-time transcription using Android's Speech-to-Text API.
@@ -47,4 +50,3 @@ LocaLLM is an Android application designed for real-time speech-to-text processi
 
 ## License
 Apache 2.0 License. See `LICENSE` for more details.
-
