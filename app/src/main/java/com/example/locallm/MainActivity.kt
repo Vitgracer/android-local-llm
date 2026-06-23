@@ -80,17 +80,19 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // Split into blocks based on the speaker tag
-            val blocks = fullText.split("\n[Speaker]:").filter { it.isNotBlank() }
+            // Split into blocks and ensure each block keeps its prefix
+            val blocks = fullText.split("\n[Speaker]:").filter { it.isNotBlank() }.map { 
+                if (it.startsWith("[Speaker]:")) it else "[Speaker]:$it"
+            }
             
-            // Limit context to ONLY 2 previous blocks to avoid confusing the AI with old questions
-            val contextBlocks = if (blocks.size > 1) {
-                blocks.dropLast(1).takeLast(2).joinToString("\n[Speaker]:", prefix = "[Speaker]:")
+            // Logic: Take more context (last 6 blocks) but strictly separate the current message
+            val history = if (blocks.size > 1) {
+                blocks.dropLast(1).takeLast(6).joinToString("\n")
             } else ""
             
-            val latestQuestion = "[Speaker]:" + blocks.last()
+            val latestMessage = blocks.last()
             
-            generateAIAnswerStreaming(contextBlocks, latestQuestion)
+            generateAIAnswerStreaming(history, latestMessage)
         }
     }
 
@@ -169,19 +171,22 @@ class MainActivity : AppCompatActivity() {
         startListening()
     }
 
-    private fun generateAIAnswerStreaming(context: String, latest: String) {
+    private fun generateAIAnswerStreaming(history: String, latest: String) {
         tvResponse.text = ""
         btnGenerate.isEnabled = false
         tvResponse.hint = getString(R.string.status_thinking)
 
         val systemPrompt = if (swLanguage.isChecked) AppConfig.SYSTEM_PROMPT_EN else AppConfig.SYSTEM_PROMPT_RU
 
+        // Updated prompt format based on expert advice
         val userMessage = """
-            [BACKGROUND CONTEXT - DO NOT ANSWER THIS]:
-            $context
+            Conversation history:
+            $history
             
-            [LATEST QUESTION - ANSWER THIS ONLY]:
+            Current user message:
             $latest
+            
+            Answer only the current user message. Use history only if needed for context.
         """.trimIndent()
 
         val requestBody = mapOf(
