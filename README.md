@@ -11,7 +11,7 @@ LocaLLM is an Android application designed for real-time speech-to-text processi
 ## Demo
 
 <p align="left">
-  <img src="assets/frames/demo.gif" width="20%" />
+  <img src="assets/demo.gif" width="20%" />
 </p>
 
 ## Features
