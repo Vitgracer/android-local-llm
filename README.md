@@ -9,7 +9,10 @@
 LocaLLM is an Android application designed for real-time speech-to-text processing and intelligent response generation using local Large Language Models (LLMs). It serves as a helpful assistant during live conversations.
 
 ## Demo
-![LocaLLM Demo](path/to/your/demo.gif)
+
+<p align="left">
+  <img src="assets/frames/demo.gif" width="20%" />
+</p>
 
 ## Features
 - **Voice Recognition**: Real-time transcription using Android's Speech-to-Text API.

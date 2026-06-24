@@ -12,5 +12,8 @@
 *.aab
 .kotlin
 
+*.mp4
+frames/
+
 # App configuration (hidden from VCS)
 /app/src/main/java/com/example/locallm/AppConfig.kt
